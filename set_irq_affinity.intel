@@ -53,6 +53,22 @@
 #	eth0-tx-1  CPU1
 #
 
+declare -i CORE_PER_SOCK=$(nproc)/4
+
+set_affinity_list()
+{
+#    printf "%d\n" $core_per_sock
+    declare -i NUMA_NODE=$(cat /proc/irq/$IRQ/node)
+#    printf "numa node : %d\n" $NUMA_NODE
+    let "cpu = $IRQ % $CORE_PER_SOCK + $CORE_PER_SOCK * NUMA_NODE "
+
+    if [ $NUMA_NODE -ge 0 ]
+    then 
+	    printf "%s: echo %d > /proc/irq/%d/smp_affinity_list \n" $VEC $cpu $IRQ
+	    echo $cpu  > /proc/irq/$IRQ/smp_affinity_list 
+    fi
+}
+
 set_affinity()
 {
 	if [ $VEC -ge 32 ]
@@ -74,7 +90,7 @@ set_affinity()
 	fi
 
     printf "%s mask=%s for /proc/irq/%d/smp_affinity\n" $DEV $MASK $IRQ
-    printf "%s" $MASK > /proc/irq/$IRQ/smp_affinity
+#    printf "%s" $MASK > /proc/irq/$IRQ/smp_affinity
 }
 
 if [ "$1" = "" ] ; then
@@ -115,11 +131,11 @@ do
      do
         IRQ=`cat /proc/interrupts | grep -i $DEV-$DIR-$VEC"$"  | cut  -d:  -f1 | sed "s/ //g"`
         if [ -n  "$IRQ" ]; then
-          set_affinity
+          set_affinity_list
         else
            IRQ=`cat /proc/interrupts | egrep -i $DEV:v$VEC-$DIR"$"  | cut  -d:  -f1 | sed "s/ //g"`
            if [ -n  "$IRQ" ]; then
-             set_affinity
+             set_affinity_list
            fi
         fi
      done
