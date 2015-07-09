@@ -42,6 +42,15 @@ else
 	END=$1
 fi
 
+for core in `seq 2 41`;
+do
+	grep $NIC $START | awk '{ SUM += $col } END { print SUM }' col=$core >> __start
+	grep $NIC $END | awk '{ SUM += $col } END { print SUM }' col=$core >> __end
+done
+
+echo before comment
+: <<'END'
+
 if [ "$CORES1" -le 40 ]; then
 	grep $NIC $START | awk \
 	'{print \
@@ -64,6 +73,8 @@ else
 	echo "the cores is not 40"
 	exit
 fi
+END
+echo after comment
 
 paste __start __end | awk '{ print $2 - $1 }' > ttt
 
@@ -74,3 +85,4 @@ rm __start
 
 gnuplot -e "datafile='$3.txt'" bar_$CORES1.gnuplot
 mv bar.png $HOSTNAME1.$3.png
+rm $3.txt
