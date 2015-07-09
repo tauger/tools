@@ -42,7 +42,8 @@ else
 	END=$1
 fi
 
-for core in `seq 2 41`;
+let CORES2+=1
+for core in `seq 2 $CORES2`;
 do
 	grep $NIC $START | awk '{ SUM += $col } END { print SUM }' col=$core >> __start
 	grep $NIC $END | awk '{ SUM += $col } END { print SUM }' col=$core >> __end
