@@ -1,0 +1,13 @@
+#!/bin/bash
+
+HOSTNAME=$1
+CORES=$(ssh $HOSTNAME "nproc")
+
+OUTPUT_FILENAME=$HOSTNAME
+OUTPUT_FILENAME+="_"
+OUTPUT_FILENAME+=$CORES
+OUTPUT_FILENAME+="_"
+OUTPUT_FILENAME+=$(date +%s)
+
+ssh $HOSTNAME "cat /proc/interrupts" > $OUTPUT_FILENAME
+
