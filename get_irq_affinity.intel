@@ -55,10 +55,10 @@
 
 get_affinity()
 {
-    printf "%s:  irq %d\nsmp_affinity: " $DEV $IRQ
-    cat /proc/irq/${IRQ}/smp_affinity
-    printf "numa_node: "
-    cat /proc/irq/${IRQ}/node
+    printf "%s:  irq %d\nsmp_affinity_list: " $DEV $IRQ
+    cat /proc/irq/${IRQ}/smp_affinity_list
+#    printf "numa_node: "
+#    cat /proc/irq/${IRQ}/node
 }
 
 set_affinity()
