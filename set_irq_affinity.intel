@@ -53,21 +53,54 @@
 #	eth0-tx-1  CPU1
 #
 
-declare -i CORE_PER_SOCK=$(nproc)/4
+MODE="$2"
+
+
+# restore the RSS irq to default
+set_affinity_list_default()
+{
+#    printf "%d\n" $core_per_sock
+    declare -i CORE_PER_SOCK=$(nproc)/1
+    declare -i NUMA_NODE=$(cat /proc/irq/$IRQ/node)
+#    printf "numa node : %d\n" $NUMA_NODE
+
+    let "cpu = $VEC" 
+    printf "%s: echo %d > /proc/irq/%d/smp_affinity_list \n" $VEC $cpu $IRQ
+    echo $cpu  > /proc/irq/$IRQ/smp_affinity_list 
+}
+
+# set the RSS irq to numa local node first, then remote node.
+set_affinity_list_numa()
+{
+#    printf "%d\n" $core_per_sock
+    declare -i CORE_PER_SOCK=$(nproc)/2
+    declare -i NUMA_NODE=$(cat /proc/irq/$IRQ/node)
+#    printf "numa node : %d\n" $NUMA_NODE
+
+    # we want to spread over all the physical cores 
+    if [ $NUMA_NODE == 0 ]
+    then
+	    let "cpu = $VEC % $CORE_PER_SOCK " 
+	    printf "%s: echo %d > /proc/irq/%d/smp_affinity_list \n" $VEC $cpu $IRQ
+    	    echo $cpu  > /proc/irq/$IRQ/smp_affinity_list 
+    else
+    	    let "cpu = $CORE_PER_SOCK * NUMA_NODE - $VEC % $CORE_PER_SOCK - 1 "
+	    printf "%s: echo %d > /proc/irq/%d/smp_affinity_list \n" $VEC $cpu $IRQ
+    	    echo $cpu  > /proc/irq/$IRQ/smp_affinity_list 
+    fi
+}
 
 set_affinity_list()
 {
-#    printf "%d\n" $core_per_sock
-    declare -i NUMA_NODE=$(cat /proc/irq/$IRQ/node)
-#    printf "numa node : %d\n" $NUMA_NODE
-    let "cpu = $IRQ % $CORE_PER_SOCK + $CORE_PER_SOCK * NUMA_NODE "
-
-    if [ $NUMA_NODE -ge 0 ]
-    then 
-	    printf "%s: echo %d > /proc/irq/%d/smp_affinity_list \n" $VEC $cpu $IRQ
-	    echo $cpu  > /proc/irq/$IRQ/smp_affinity_list 
-    fi
+	if [ "x$MODE" == "xdefault" ]; then
+		set_affinity_list_default
+	elif [ "x$MODE" == "xnuma" ]; then
+		set_affinity_list_numa
+	else
+		echo "wrong mode"
+	fi
 }
+
 
 set_affinity()
 {
@@ -98,7 +131,7 @@ if [ "$1" = "" ] ; then
 	echo "    This script attempts to bind each queue of a multi-queue NIC"
 	echo "    to the same numbered core, ie tx0|rx0 --> cpu0, tx1|rx1 --> cpu1"
 	echo "usage:"
-	echo "    $0 eth0 [eth1 eth2 eth3]"
+	echo "    $0 eth0 [eth1 eth2 eth3] mode"
 fi
 
 
