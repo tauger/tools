@@ -18,3 +18,5 @@ $40+$41\
 
 nl -v 0 -nln ttt.txt > $1.txt
 rm ttt.txt
+
+#vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
